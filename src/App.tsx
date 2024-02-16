@@ -11,9 +11,6 @@ export default function App() {
 
   const theme = useTheme()
 
-  if(currentServer){
-    return <Room></Room>
-  }
 
   return (
     <Grid

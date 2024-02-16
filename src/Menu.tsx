@@ -1,61 +1,75 @@
-import { Grid, Paper } from "@mui/material";
-import Button from '@mui/material/Button';
-import { useTheme } from '@mui/material/styles';
-import {
-    useGetServersQuery, useJoinServerMutation
-} from "./api/api";
+import { Grid, Paper, TextField } from "@mui/material";
+import Button from "@mui/material/Button";
+import { useTheme } from "@mui/material/styles";
+import { useState } from "react";
+import { useGetServersQuery, useJoinServerMutation } from "./api/api";
 
 export default function Menu() {
-  const {data:servers} = useGetServersQuery();
+  const { data: servers } = useGetServersQuery();
   const [joinServer] = useJoinServerMutation();
+  const [username, setUsername] = useState<string>("");
+  const theme = useTheme();
 
-  const theme = useTheme()
-
-  const onJoin = (id:string) => {
-    joinServer(id).unwrap().then(()=>console.log("success")).catch(()=>console.log('failed'));
-  }
-
+  const onJoin = (serverId: string) => {
+    if (!username) return alert("Please enter a username");
+    joinServer({ serverId, username })
+      .unwrap()
+      .then(() => console.log("success"))
+      .catch(() => console.log("failed"));
+  };
 
   return (
     <Grid
-     container 
-     flexDirection={"row"}
-     alignContent={"flex-start"}
-    sx={{
-      width:"100vw",
-      height:"100vh",
-    }}>
-      {servers?.map(({created,maxPlayers,players,id}) => (
+      container
+      flexDirection={"row"}
+      alignContent={"flex-start"}
+      sx={{
+        width: "100vw",
+        height: "100vh",
+      }}
+    >
+      <Grid item xs={12}>
+        <TextField
+          label="Username"
+          variant="outlined"
+          sx={{
+            background: theme.palette.dark200,
+            borderRadius: theme.spacing(1),
+          }}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+      </Grid>
+      {servers?.map(({ created, maxPlayers, players, id }) => (
         <Grid item key={id} xs={6}>
-          <Paper sx={{
-            background:theme.palette.dark200,
-            padding:theme.spacing(2),
-            margin:theme.spacing(2),
-            color:"white"
-          }}>
+          <Paper
+            sx={{
+              background: theme.palette.dark200,
+              padding: theme.spacing(2),
+              margin: theme.spacing(2),
+              color: "white",
+            }}
+          >
             <Grid container flexDirection={"column"}>
-              <Grid item>
-                {id}
-              </Grid>
+              <Grid item>{id}</Grid>
               <Grid item>
                 {players}/{maxPlayers}
-              </Grid> 
+              </Grid>
+              <Grid item>{created}</Grid>
               <Grid item>
-                {created}
-                </Grid>
-                <Grid item>
-                  <Button sx={{
-                    background:theme.palette.primary500,
-                    color:theme.palette.dark100,
-                    '&:hover':{
-                      background:theme.palette.primary600,
-                    }
+                <Button
+                  sx={{
+                    background: theme.palette.primary500,
+                    color: theme.palette.dark100,
+                    "&:hover": {
+                      background: theme.palette.primary600,
+                    },
                   }}
-                  onClick={()=>onJoin(id)}
-                  >
-                    Join
-                  </Button>
-                </Grid>
+                  onClick={() => onJoin(id)}
+                >
+                  Join
+                </Button>
+              </Grid>
             </Grid>
           </Paper>
         </Grid>
