@@ -88,9 +88,19 @@ const api = createApi({
         });
       })
     }),
+    createServer: build.mutation<void, string>({
+      queryFn: async (username) => new Promise((resolve, reject) => {
+        const socket = getSocket();
+        socket.emit('create', username, (done: boolean) => {
+          if (done) return resolve({ data: undefined });
+          return reject({ data: undefined });
+        });
+      })
+    }),
   }),
+
 })
 
-export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery } = api
+export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery, useCreateServerMutation } = api
 
 export default api;

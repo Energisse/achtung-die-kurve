@@ -2,17 +2,30 @@ import { Grid, Paper, TextField } from "@mui/material";
 import Button from "@mui/material/Button";
 import { useTheme } from "@mui/material/styles";
 import { useState } from "react";
-import { useGetServersQuery, useJoinServerMutation } from "./api/api";
+import {
+  useCreateServerMutation,
+  useGetServersQuery,
+  useJoinServerMutation,
+} from "./api/api";
 
 export default function Menu() {
   const { data: servers } = useGetServersQuery();
   const [joinServer] = useJoinServerMutation();
+  const [createServer] = useCreateServerMutation();
   const [username, setUsername] = useState<string>("");
   const theme = useTheme();
 
   const onJoin = (serverId: string) => {
     if (!username) return alert("Please enter a username");
     joinServer({ serverId, username })
+      .unwrap()
+      .then(() => console.log("success"))
+      .catch(() => console.log("failed"));
+  };
+
+  const onCreate = () => {
+    if (!username) return alert("Please enter a username");
+    createServer(username)
       .unwrap()
       .then(() => console.log("success"))
       .catch(() => console.log("failed"));
@@ -74,6 +87,7 @@ export default function Menu() {
           </Paper>
         </Grid>
       ))}
+      <Button onClick={onCreate}>Create</Button>
     </Grid>
   );
 }
