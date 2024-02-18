@@ -10,13 +10,20 @@ export const getSocket = () => {
   return socket;
 }
 
+export type Leaderboard = Array<{
+  name: string,
+  isModerator: boolean,
+  id: string,
+  color: string,
+  isALive: boolean,
+  points: number
+}>
+
+export type Board = Array<Array<[number, number]>>
+
 export type RoomInfo = {
-  players: Array<{
-    name: string,
-    isModerator: boolean,
-    id: string,
-    color: string,
-  }>
+  leaderboard: Leaderboard,
+  board: Board,
 }
 
 const api = createApi({
@@ -52,8 +59,13 @@ const api = createApi({
       }
     }),
 
-    getRoomInfos: build.query<RoomInfo | null, void>({
-      queryFn: () => ({ data: null }),
+    getRoomInfos: build.query<RoomInfo, void>({
+      queryFn: () => ({
+        data: {
+          board: [],
+          leaderboard: []
+        }
+      }),
       async onCacheEntryAdded(_,
         { cacheDataLoaded, cacheEntryRemoved, updateCachedData },
       ) {
@@ -62,12 +74,28 @@ const api = createApi({
 
           const socket = getSocket();
 
-          socket.emit('room', (room: RoomInfo) => {
-            updateCachedData(() => room);
+
+          socket.on('leaderboard', (leaderboard: Leaderboard) => {
+            console.log(leaderboard);
+            updateCachedData((room) => ({ ...room, leaderboard }));
           })
 
-          socket.on('room', (room: RoomInfo) => {
-            updateCachedData(() => room);
+          socket.on('tick', (data: Array<[number, number] | null>) => {
+            updateCachedData((room) => {
+              data.forEach((d, index) => {
+                if (!room.board[index]) {
+                  room.board[index] = [];
+                }
+                if (d) room.board[index].push(d);
+              })
+            });
+          })
+
+          socket.on('start', () => {
+            updateCachedData((room) => {
+              room.board = [];
+              return room;
+            });
           })
 
           await cacheEntryRemoved;
@@ -105,42 +133,9 @@ const api = createApi({
         return { data: undefined }
       },
     }),
-    getBoard: build.query<Array<Array<[number, number]>>, void>({
-      queryFn: () => ({ data: [] }),
-      async onCacheEntryAdded(
-        photoId,
-        { cacheDataLoaded, cacheEntryRemoved, updateCachedData },
-      ) {
-        try {
-          await cacheDataLoaded;
-
-          const socket = getSocket();
-
-          socket.on('connect', () => {
-          });
-
-          socket.on('tick', (data: Array<[number, number]>) => {
-            updateCachedData((draft) => {
-              data.forEach((d, index) => {
-                if (!draft[index]) {
-                  draft[index] = [];
-                }
-                draft[index].push(d);
-              })
-            });
-          })
-          await cacheEntryRemoved;
-
-          socket.off('connect');
-        } catch {
-          // if cacheEntryRemoved resolved before cacheDataLoaded,
-          // cacheDataLoaded throws
-        }
-      },
-    }),
   })
 })
 
-export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery, useCreateServerMutation, useSetDirectionMutation, useGetBoardQuery } = api
+export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery, useCreateServerMutation, useSetDirectionMutation } = api
 
 export default api;

@@ -1,7 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   getSocket,
-  useGetBoardQuery,
   useGetRoomInfosQuery,
   useSetDirectionMutation,
 } from "./api/api";
@@ -11,9 +10,8 @@ import { useCallback, useEffect } from "react";
 let directions: Array<"right" | "left" | "forward"> = ["forward"];
 
 export default function Room() {
-  const { data } = useGetRoomInfosQuery();
+  const { data: room } = useGetRoomInfosQuery();
   const [send] = useSetDirectionMutation();
-  const { data: positions } = useGetBoardQuery();
   const theme = useTheme();
 
   const keydown = useCallback(
@@ -76,24 +74,34 @@ export default function Room() {
           color: "white",
         }}
       >
-        {data?.players.map(({ name, isModerator, id, color }, index) => (
-          <Grid item container xs={12} p={1}>
-            <Grid item>
-              <FontAwesomeIcon
-                icon={faCrown}
-                style={{ visibility: isModerator ? "visible" : "hidden" }}
-              />
-              <Typography
-                key={id}
-                sx={{ color }}
-                variant="body1"
-                display={"inline-block"}
-              >
-                {name}
-              </Typography>
+        {room?.leaderboard.map(
+          ({ name, isModerator, id, color, points }, index) => (
+            <Grid item container xs={12} p={1}>
+              <Grid item>
+                <Typography
+                  key={id}
+                  sx={{ color }}
+                  variant="body1"
+                  display={"inline-block"}
+                >
+                  {points}
+                </Typography>
+                <FontAwesomeIcon
+                  icon={faCrown}
+                  style={{ visibility: isModerator ? "visible" : "hidden" }}
+                />
+                <Typography
+                  key={id}
+                  sx={{ color }}
+                  variant="body1"
+                  display={"inline-block"}
+                >
+                  {name}
+                </Typography>
+              </Grid>
             </Grid>
-          </Grid>
-        ))}
+          )
+        )}
       </Grid>
       <Button
         onClick={() => {
@@ -109,12 +117,12 @@ export default function Room() {
           background: theme.palette.dark300,
         }}
       >
-        {positions?.map((positions, index) => (
+        {room?.board?.map((positions, index) => (
           <path
             d={`M${positions.map(([x, y]) => `${x},${y}`).join("L")}`}
             fill="none"
             strokeWidth="2"
-            stroke="white"
+            stroke={room?.leaderboard[index].color}
           />
         ))}
       </svg>
