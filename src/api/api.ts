@@ -14,7 +14,8 @@ export type RoomInfo = {
   players: Array<{
     name: string,
     isModerator: boolean,
-    id: string
+    id: string,
+    color: string,
   }>
 }
 
@@ -97,10 +98,49 @@ const api = createApi({
         });
       })
     }),
-  }),
+    setDirection: build.mutation<void, "left" | "right" | "forward">({
+      queryFn: async (message) => {
+        const socket = getSocket();
+        socket.emit('direction', message);
+        return { data: undefined }
+      },
+    }),
+    getBoard: build.query<Array<Array<[number, number]>>, void>({
+      queryFn: () => ({ data: [] }),
+      async onCacheEntryAdded(
+        photoId,
+        { cacheDataLoaded, cacheEntryRemoved, updateCachedData },
+      ) {
+        try {
+          await cacheDataLoaded;
 
+          const socket = getSocket();
+
+          socket.on('connect', () => {
+          });
+
+          socket.on('tick', (data: Array<[number, number]>) => {
+            updateCachedData((draft) => {
+              data.forEach((d, index) => {
+                if (!draft[index]) {
+                  draft[index] = [];
+                }
+                draft[index].push(d);
+              })
+            });
+          })
+          await cacheEntryRemoved;
+
+          socket.off('connect');
+        } catch {
+          // if cacheEntryRemoved resolved before cacheDataLoaded,
+          // cacheDataLoaded throws
+        }
+      },
+    }),
+  })
 })
 
-export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery, useCreateServerMutation } = api
+export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery, useCreateServerMutation, useSetDirectionMutation, useGetBoardQuery } = api
 
 export default api;

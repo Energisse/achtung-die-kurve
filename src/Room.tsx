@@ -1,11 +1,65 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useGetRoomInfosQuery } from "./api/api";
+import {
+  getSocket,
+  useGetBoardQuery,
+  useGetRoomInfosQuery,
+  useSetDirectionMutation,
+} from "./api/api";
 import { faCrown } from "@fortawesome/free-solid-svg-icons";
-import { Grid, useTheme } from "@mui/material";
+import { Button, Grid, Typography, useTheme } from "@mui/material";
+import { useCallback, useEffect } from "react";
+let directions: Array<"right" | "left" | "forward"> = ["forward"];
 
 export default function Room() {
   const { data } = useGetRoomInfosQuery();
+  const [send] = useSetDirectionMutation();
+  const { data: positions } = useGetBoardQuery();
   const theme = useTheme();
+
+  const keydown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.type === "keyup") {
+        if (e.key === "ArrowLeft") {
+          directions = directions.filter((d) => d !== "left");
+        } else if (e.key === "ArrowRight") {
+          directions = directions.filter((d) => d !== "right");
+        }
+      } else {
+        if (e.key === "ArrowLeft") {
+          if (!directions.includes("left")) {
+            directions.push("left");
+          }
+          // left is aleady in the array
+          else if (directions.at(-1) !== "left") {
+            directions = directions.filter((d) => d !== "left");
+            directions.push("left");
+          }
+        } else if (e.key === "ArrowRight") {
+          if (!directions.includes("right")) {
+            directions.push("right");
+          }
+          // right is aleady in the array
+          else if (directions.at(-1) !== "right") {
+            directions = directions.filter((d) => d !== "right");
+            directions.push("right");
+          }
+        }
+      }
+
+      console.log(directions);
+      send(directions[directions.length - 1]);
+    },
+    [send]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keyup", keydown);
+    window.addEventListener("keydown", keydown);
+    return () => {
+      window.removeEventListener("keyup", keydown);
+      window.removeEventListener("keydown", keydown);
+    };
+  }, [keydown]);
 
   return (
     <>
@@ -20,20 +74,50 @@ export default function Room() {
         sx={{
           background: theme.palette.dark200,
           color: "white",
-          fontSize: theme.typography.h4.fontSize,
         }}
       >
-        {data?.players.map(({ name, isModerator, id }, index) => (
+        {data?.players.map(({ name, isModerator, id, color }, index) => (
           <Grid item container xs={12} p={1}>
-            <Grid item xs={3}>
-              {isModerator && <FontAwesomeIcon icon={faCrown} />}
-            </Grid>
             <Grid item>
-              <div key={id}>{name}</div>
+              <FontAwesomeIcon
+                icon={faCrown}
+                style={{ visibility: isModerator ? "visible" : "hidden" }}
+              />
+              <Typography
+                key={id}
+                sx={{ color }}
+                variant="body1"
+                display={"inline-block"}
+              >
+                {name}
+              </Typography>
             </Grid>
           </Grid>
         ))}
       </Grid>
+      <Button
+        onClick={() => {
+          getSocket().emit("start");
+        }}
+      >
+        Start
+      </Button>
+      <svg
+        width="1000px"
+        height="1000px"
+        style={{
+          background: theme.palette.dark300,
+        }}
+      >
+        {positions?.map((positions, index) => (
+          <path
+            d={`M${positions.map(([x, y]) => `${x},${y}`).join("L")}`}
+            fill="none"
+            strokeWidth="2"
+            stroke="white"
+          />
+        ))}
+      </svg>
     </>
   );
 }
