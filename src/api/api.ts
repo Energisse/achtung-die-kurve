@@ -19,7 +19,21 @@ export type Leaderboard = Array<{
   points: number
 }>
 
-export type Board = Array<Array<[number, number]>>
+export type Line = {
+  end: Dot,
+  start: Dot,
+  invisible: boolean,
+  color: string,
+  strokeWidth: number,
+}
+
+
+export type Dot = {
+  x: number,
+  y: number,
+}
+
+export type Board = Array<Array<Line>>
 
 export type RoomInfo = {
   leaderboard: Leaderboard,
@@ -80,16 +94,6 @@ const api = createApi({
             updateCachedData((room) => ({ ...room, leaderboard }));
           })
 
-          socket.on('tick', (data: Array<[number, number] | null>) => {
-            updateCachedData((room) => {
-              data.forEach((d, index) => {
-                if (!room.board[index]) {
-                  room.board[index] = [];
-                }
-                if (d) room.board[index].push(d);
-              })
-            });
-          })
 
           socket.on('start', () => {
             updateCachedData((room) => {
