@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button, Grid, Typography, useTheme } from "@mui/material";
 import { useCallback, useEffect, useRef } from "react";
 import {
+  Circle,
   Line,
   getSocket,
   useGetRoomInfosQuery,
@@ -72,61 +73,72 @@ export default function Room() {
       radius: number;
     }> = [];
 
-    const board: Array<Array<Line>> = [];
+    let players: Array<{
+      tail: Array<Line>;
+      position: Circle;
+      color: string;
+    }> = [];
 
-    getSocket().on("tick", (data: Array<Line | null>) => {
-      data.forEach((d, index) => {
-        if (!board[index]) {
-          board[index] = [];
-        }
-        if (d) board[index].push(d);
-      });
-
-      getSocket().on("powerUp", (p) => {
-        powerUps = p;
-      });
-
-      getSocket().on("start", () => {
-        board.forEach((lines, index) => {
-          board[index] = [];
+    getSocket().on(
+      "tick",
+      (
+        data: Array<{
+          newTail: Line | null;
+          position: Circle;
+          color: string;
+        } | null>
+      ) => {
+        data.forEach((d, index) => {
+          if (!d) return;
+          if (!players[index]) {
+            players[index] = {
+              tail: [],
+              position: d.position,
+              color: d.color,
+            };
+          }
+          if (d.newTail) players[index].tail.push(d.newTail);
+          players[index].position = d.position;
         });
-      });
 
-      const render = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        powerUps.forEach((p) => {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI);
-          ctx.fillStyle = "green";
-          ctx.fill();
+        getSocket().on("powerUp", (p) => {
+          powerUps = p;
         });
 
-        board.forEach((lines, index) => {
-          ctx.beginPath();
-          lines.forEach((line) => {
-            if (line.invisible) {
-              ctx.moveTo(line.start.x, line.start.y);
-              return;
-            }
-            ctx.lineTo(line.start.x, line.start.y);
-            ctx.lineTo(line.end.x, line.end.y);
-            ctx.strokeStyle = line.color;
-            ctx.lineWidth = line.strokeWidth;
+        getSocket().on("start", () => {
+          players = [];
+        });
+
+        const render = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          powerUps.forEach((p) => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI);
+            ctx.fillStyle = "green";
+            ctx.fill();
           });
-          const {
-            end: { x, y },
-            color,
-          } = lines.at(-1)!;
 
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(x, y, 5, 0, 2 * Math.PI);
-          ctx.fillStyle = color;
-          ctx.fill();
-        });
-      };
-      window.requestAnimationFrame(render);
-    });
+          players.forEach(
+            ({ position: { x, y, radius }, tail, color }, index) => {
+              ctx.strokeStyle = color;
+              ctx.beginPath();
+              tail.forEach(({ p1, p2, width }) => {
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.lineWidth = width;
+              });
+              ctx.stroke();
+
+              ctx.beginPath();
+              ctx.arc(x, y, radius, 0, 2 * Math.PI);
+              ctx.fillStyle = color;
+              ctx.fill();
+            }
+          );
+        };
+        window.requestAnimationFrame(render);
+      }
+    );
 
     return () => {
       getSocket().off("tick");

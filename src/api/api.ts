@@ -20,11 +20,9 @@ export type Leaderboard = Array<{
 }>
 
 export type Line = {
-  end: Dot,
-  start: Dot,
-  invisible: boolean,
-  color: string,
-  strokeWidth: number,
+  p1: Dot,
+  p2: Dot,
+  width: number,
 }
 
 
@@ -33,11 +31,12 @@ export type Dot = {
   y: number,
 }
 
-export type Board = Array<Array<Line>>
+export type Circle = Dot & {
+  radius: number,
+}
 
 export type RoomInfo = {
   leaderboard: Leaderboard,
-  board: Board,
 }
 
 const api = createApi({
@@ -97,7 +96,6 @@ const api = createApi({
 
           socket.on('start', () => {
             updateCachedData((room) => {
-              room.board = [];
               return room;
             });
           })
