@@ -66,6 +66,12 @@ export default function Room() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    let powerUps: Array<{
+      x: number;
+      y: number;
+      radius: number;
+    }> = [];
+
     const board: Array<Array<Line>> = [];
 
     getSocket().on("tick", (data: Array<Line | null>) => {
@@ -76,6 +82,10 @@ export default function Room() {
         if (d) board[index].push(d);
       });
 
+      getSocket().on("powerUp", (p) => {
+        powerUps = p;
+      });
+
       getSocket().on("start", () => {
         board.forEach((lines, index) => {
           board[index] = [];
@@ -84,6 +94,13 @@ export default function Room() {
 
       const render = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        powerUps.forEach((p) => {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI);
+          ctx.fillStyle = "green";
+          ctx.fill();
+        });
+
         board.forEach((lines, index) => {
           ctx.beginPath();
           lines.forEach((line) => {
