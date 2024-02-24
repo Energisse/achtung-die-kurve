@@ -4,7 +4,7 @@ import { Socket, io } from 'socket.io-client';
 let socket: Socket | null = null;
 export const getSocket = () => {
   if (socket) return socket;
-  socket = io("http://localhost:5000");
+  socket = io(process.env.REACT_APP_SERVER_URI, { transports: ['websocket'] });
   socket.on('connect', () => {
   });
   return socket;

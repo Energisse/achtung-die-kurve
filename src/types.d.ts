@@ -31,3 +31,13 @@ declare module "@mui/material/styles" {
         primary600: string,
     }
 }
+
+declare global {
+    namespace NodeJS {
+      interface ProcessEnv {
+        NODE_ENV: 'development' | 'production' | 'test';
+        REACT_APP_SERVER_URI: string;
+      }
+    }
+  }
+  
