@@ -71,6 +71,9 @@ export default function Room() {
       x: number;
       y: number;
       radius: number;
+      id: string;
+      other: boolean;
+      type: string;
     }> = [];
 
     let players: Array<{
@@ -78,6 +81,19 @@ export default function Room() {
       position: Circle;
       color: string;
     }> = [];
+
+    getSocket().on('powerUp:Added',(powerUp: {x: number, y: number, radius: number, id: string, other: boolean,      type: string}) => {
+      powerUps.push(powerUp);
+    });
+    getSocket().on('powerUp:Removed', (id: string[]) => {
+      powerUps = powerUps.filter(p => !id.includes(p.id));
+    });
+
+    
+    getSocket().on("start", () => {
+      players = [];
+      powerUps = [];
+    });
 
     getSocket().on(
       "tick",
@@ -101,21 +117,20 @@ export default function Room() {
           players[index].position = d.position;
         });
 
-        getSocket().on("powerUp", (p) => {
-          powerUps = p;
-        });
-
-        getSocket().on("start", () => {
-          players = [];
-        });
+       
 
         const render = () => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           powerUps.forEach((p) => {
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI);
-            ctx.fillStyle = "green";
+            ctx.fillStyle = p.other ? "red" : "green";
             ctx.fill();
+            ctx.fillStyle = "white";
+            ctx.textAlign = "center";
+            ctx.textBaseline = 'middle';
+            ctx.font = "20px Arial";
+            ctx.fillText(p.type[0], p.x, p.y);
           });
 
           players.forEach(
