@@ -37,6 +37,7 @@ export type Circle = Dot & {
 
 export type RoomInfo = {
   leaderboard: Leaderboard,
+  moderator: boolean
 }
 
 const api = createApi({
@@ -75,8 +76,8 @@ const api = createApi({
     getRoomInfos: build.query<RoomInfo, void>({
       queryFn: () => ({
         data: {
-          board: [],
-          leaderboard: []
+          leaderboard: [],
+          moderator:false
         }
       }),
       async onCacheEntryAdded(_,
@@ -89,10 +90,12 @@ const api = createApi({
 
 
           socket.on('leaderboard', (leaderboard: Leaderboard) => {
-            console.log(leaderboard);
-            updateCachedData((room) => ({ ...room, leaderboard }));
+            updateCachedData((room) => ({ ...room, leaderboard, moderator: leaderboard.find(p => p.id === socket?.id)?.isModerator || false}));
           })
 
+          socket.on('kicked',()=>{
+            updateCachedData(() => ({ leaderboard: [], moderator: false}));
+          })
 
           socket.on('start', () => {
             updateCachedData((room) => {
@@ -135,9 +138,16 @@ const api = createApi({
         return { data: undefined }
       },
     }),
+    kick: build.mutation<void, string>({  
+      queryFn: async (id) => {
+        const socket = getSocket();
+        socket.emit('kick', id);
+        return { data: undefined }
+      },
+    }),
   })
 })
 
-export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery, useCreateServerMutation, useSetDirectionMutation } = api
+export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery, useCreateServerMutation, useSetDirectionMutation,useKickMutation } = api
 
 export default api;
