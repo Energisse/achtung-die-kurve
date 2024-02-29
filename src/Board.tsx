@@ -71,6 +71,7 @@ export default function Board() {
     }> = [];
 
     let players: Array<{
+      id: string;
       tail: Array<Line>;
       position: Circle;
       color: string;
@@ -83,6 +84,14 @@ export default function Board() {
       powerUps = powerUps.filter(p => !id.includes(p.id));
     });
 
+    getSocket().on('tail:Removed', ({parts,player}:{
+      player: string
+      parts: number[]
+  }) => {
+    const playerIndex = players.findIndex(p => p.id === player);
+    if(playerIndex === -1) return;
+    players[playerIndex].tail = players[playerIndex].tail.filter((_, i) => !parts.includes(i));  
+    });
     
     getSocket().on("start", () => {
       players = [];
@@ -93,6 +102,7 @@ export default function Board() {
       "tick",
       (
         data: Array<{
+          id: string;
           newTail: Line | null;
           position: Circle;
           color: string;
@@ -102,6 +112,7 @@ export default function Board() {
           if (!d) return;
           if (!players[index]) {
             players[index] = {
+              id: d.id,
               tail: [],
               position: d.position,
               color: d.color,
@@ -115,6 +126,7 @@ export default function Board() {
 
         const render = () => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
           powerUps.forEach((p) => {
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI);
@@ -127,14 +139,33 @@ export default function Board() {
             ctx.fillText(p.type[0], p.x, p.y);
           });
 
+
           players.forEach(
             ({ position: { x, y, radius }, tail, color }, index) => {
               ctx.strokeStyle = color;
               ctx.beginPath();
+              let lastWidth = tail[0]?.width;
+              let lastX = tail[0]?.p1.x;
+              let lastY = tail[0]?.p1.y;
+              ctx.lineWidth = lastWidth;
+              ctx.moveTo(tail[0]?.p1.x, tail[0]?.p1.y);
+
               tail.forEach(({ p1, p2, width }) => {
-                ctx.moveTo(p1.x, p1.y);
+                if(p1.x === lastX && p1.y === lastY) {
+                  ctx.lineTo(p1.x, p1.y);
+                }
+                else{
+                  ctx.moveTo(p1.x, p1.y);
+                }
+                lastX = p2.x;
+                lastY = p2.y;
                 ctx.lineTo(p2.x, p2.y);
-                ctx.lineWidth = width;
+                if(lastWidth !== width){
+                  ctx.stroke();
+                  ctx.beginPath();
+                  lastWidth = width;
+                  ctx.lineWidth = lastWidth;
+                }
               });
               ctx.stroke();
 

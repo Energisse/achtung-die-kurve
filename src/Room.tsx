@@ -9,7 +9,7 @@ export default function Room() {
     <>
       <Leaderboard />
       <Board />
-      <Button onClick={()=>getSocket().emit("start")}>
+      <Button onClick={()=>getSocket().emit("start",()=>{})}>
         Start
       </Button>
     </>
