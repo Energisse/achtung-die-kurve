@@ -77,42 +77,59 @@ const api = createApi({
       queryFn: () => ({
         data: {
           leaderboard: [],
-          moderator:false
+          moderator: false,
         }
       }),
       async onCacheEntryAdded(_,
         { cacheDataLoaded, cacheEntryRemoved, updateCachedData },
       ) {
-        try {
-          await cacheDataLoaded;
+        await cacheDataLoaded;
 
-          const socket = getSocket();
+        const socket = getSocket();
 
 
-          socket.on('leaderboard', (leaderboard: Leaderboard) => {
-            updateCachedData((room) => ({ ...room, leaderboard, moderator: leaderboard.find(p => p.id === socket?.id)?.isModerator || false}));
-          })
+        socket.on('leaderboard', (leaderboard: Leaderboard) => {
+          updateCachedData((room) => ({ ...room, leaderboard, moderator: leaderboard.find(p => p.id === socket?.id)?.isModerator || false }));
+        })
 
-          socket.on('kicked',()=>{
-            updateCachedData(() => ({ leaderboard: [], moderator: false}));
-          })
+        socket.on('kicked', () => {
+          updateCachedData(() => ({ leaderboard: [], moderator: false}));
+        })
 
-          socket.on('start', () => {
-            updateCachedData((room) => {
-              return room;
-            });
-          })
+        socket.on('start', () => {
+          updateCachedData((room) => {
+            return room;
+          });
+        })
 
-          await cacheEntryRemoved;
+        await cacheEntryRemoved;
 
-          socket.off('room');
-
-        } catch (e) {
-          console.log(e);
-        }
+        socket.off('room');
+        socket.off('kicked');
+        socket.off('start');
+        socket.off('leaderboard');
       }
     }),
+    isPaused: build.query<boolean, void>({
+      queryFn: () => ({
+        data: false
+      }),
+      async onCacheEntryAdded(_,
+        { cacheDataLoaded, cacheEntryRemoved, updateCachedData },
+      ) {
+        await cacheDataLoaded;
+        const socket = getSocket();
 
+        socket.on('resumed', () => updateCachedData(() => false));
+
+        socket.on('paused', () => updateCachedData(() => true));
+
+        await cacheEntryRemoved;
+
+        socket.off('resumed');
+        socket.off('paused');
+      }
+    }),
     joinServer: build.mutation<void, { serverId: string, username: string }>({
       queryFn: async ({ serverId, username }) => new Promise((resolve, reject) => {
         const socket = getSocket();
@@ -138,7 +155,7 @@ const api = createApi({
         return { data: undefined }
       },
     }),
-    kick: build.mutation<void, string>({  
+    kick: build.mutation<void, string>({
       queryFn: async (id) => {
         const socket = getSocket();
         socket.emit('kick', id);
@@ -148,6 +165,6 @@ const api = createApi({
   })
 })
 
-export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery, useCreateServerMutation, useSetDirectionMutation,useKickMutation } = api
+export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery, useCreateServerMutation, useSetDirectionMutation, useKickMutation,useIsPausedQuery } = api
 
 export default api;

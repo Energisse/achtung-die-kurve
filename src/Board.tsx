@@ -3,15 +3,23 @@ import {
   Circle,
   Line,
   getSocket,
+  useIsPausedQuery,
   useSetDirectionMutation
 } from "./api/api";
 let directions: Array<"right" | "left" | "forward"> = ["forward"];
 
 export default function Board() {
+  const { data: isPaused } = useIsPausedQuery();
   const [send] = useSetDirectionMutation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const keydown = useCallback(
     (e: KeyboardEvent) => {
+      if(e.repeat) return;
+      if(e.key === " ") {
+        if(e.type === "keydown") getSocket().emit("pause", () => {});
+        return;
+      }
+      let last = directions[directions.length - 1];
       if (e.type === "keyup") {
         if (e.key === "ArrowLeft") {
           directions = directions.filter((d) => d !== "left");
@@ -39,9 +47,7 @@ export default function Board() {
           }
         }
       }
-
-      console.log(directions);
-      send(directions[directions.length - 1]);
+      if(last !== directions[directions.length - 1])  send(directions[directions.length - 1]);
     },
     [send]
   );
@@ -187,6 +193,16 @@ export default function Board() {
   }, []);
 
   return (
-    <canvas ref={canvasRef} width={1000} height={1000} />
+    <div style={{
+      position: "relative",
+      width: "1000px",
+      height: "1000px",
+    }}>
+      {isPaused && <div style={{position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", background: "rgba(0,0,0,0.5)", color: "white", padding: "1em", borderRadius: "1em"}}>Paused</div>}
+    <canvas ref={canvasRef}  width={1000} height={1000} style={{
+      border: "1px solid lightblue"
+    }}>
+      </canvas>
+    </div>
   );
 }
