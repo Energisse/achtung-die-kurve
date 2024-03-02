@@ -83,22 +83,7 @@ export default function Board() {
       color: string;
     }> = [];
 
-    getSocket().on('powerUp:Added',(powerUp: {x: number, y: number, radius: number, id: string, other: boolean,      type: string}) => {
-      powerUps.push(powerUp);
-    });
-    getSocket().on('powerUp:Removed', (id: string[]) => {
-      powerUps = powerUps.filter(p => !id.includes(p.id));
-    });
-
-    getSocket().on('tail:Removed', ({parts,player}:{
-      player: string
-      parts: number[]
-  }) => {
-    const playerIndex = players.findIndex(p => p.id === player);
-    if(playerIndex === -1) return;
-    players[playerIndex].tail = players[playerIndex].tail.filter((_, i) => !parts.includes(i));  
-    });
-    
+      
     getSocket().on("start", () => {
       players = [];
       powerUps = [];
@@ -107,35 +92,70 @@ export default function Board() {
     getSocket().on(
       "tick",
       (
-        data: Array<{
-          id: string;
-          newTail: Line | null;
-          position: Circle;
-          color: string;
-        } | null>
+        data: {
+          player: {
+            added?: Array<{
+                id: string
+                position: Circle
+                newTail?: Line
+                color: string
+            }>,
+            removed?: Array<{
+                id: string
+                parts: number[]
+            }>,
+        },
+        powerUp: {
+            added?: {
+                x: number
+                y: number
+                radius: number
+                id: string
+                type: string
+                other: boolean
+            }[],
+            removed?: string[]
+        }
+      }
       ) => {
-        data.forEach((d, index) => {
+        console.log(data);
+        data.player.added?.forEach((d) => {
           if (!d) return;
-          if (!players[index]) {
-            players[index] = {
+          let player = players.find((p) => p.id === d.id);
+          if (!player) {
+            player = {
               id: d.id,
               tail: [],
               position: d.position,
               color: d.color,
-            };
+            }
+            players.push(player);
           }
-          if (d.newTail) players[index].tail.push(d.newTail);
-          players[index].position = d.position;
+          if (d.newTail) player.tail.push(d.newTail);
+          player.position = d.position;
         });
 
-       
+        data.powerUp.added?.forEach((p) => {
+          if (!p) return;
+          powerUps.push(p);
+        });
+
+        data.powerUp.removed?.forEach((p) => {
+          powerUps = powerUps.filter((powerUp) => powerUp.id !== p);
+        });
+
+        data.player.removed?.forEach((d) => {
+          const playerIndex = players.findIndex(p => p.id === d.id);
+          if(playerIndex === -1) return;
+          players[playerIndex].tail = players[playerIndex].tail.filter((_, i) => !d.parts.includes(i));  
+        });
 
         const render = () => {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
             
           powerUps.forEach((p) => {
             ctx.beginPath();
-            ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI);
+            ctx.arc(p.x, p.y, p.radius < 1 ? 1 : p.radius , 0, 2 * Math.PI);
             ctx.fillStyle = p.other ? "red" : "green";
             ctx.fill();
             ctx.fillStyle = "white";
