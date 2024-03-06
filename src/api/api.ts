@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 import { Socket, io } from 'socket.io-client';
 
 let socket: Socket | null = null;
+
 export const getSocket = () => {
   if (socket) return socket;
   socket = io(process.env.REACT_APP_SERVER_URI, { transports: ['websocket'] });
@@ -20,6 +21,7 @@ export type Leaderboard = Array<{
 }>
 
 export type Line = {
+  id: number,
   p1: Dot,
   p2: Dot,
   width: number,
@@ -31,8 +33,9 @@ export type Dot = {
   y: number,
 }
 
-export type Circle = Dot & {
+export type Circle = {
   radius: number,
+  center: Dot,
 }
 
 export type RoomInfo = {
@@ -93,7 +96,7 @@ const api = createApi({
         })
 
         socket.on('kicked', () => {
-          updateCachedData(() => ({ leaderboard: [], moderator: false}));
+          updateCachedData(() => ({ leaderboard: [], moderator: false }));
         })
 
         socket.on('start', () => {
@@ -165,6 +168,6 @@ const api = createApi({
   })
 })
 
-export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery, useCreateServerMutation, useSetDirectionMutation, useKickMutation,useIsPausedQuery } = api
+export const { useGetServersQuery, useJoinServerMutation, useGetRoomInfosQuery, useCreateServerMutation, useSetDirectionMutation, useKickMutation, useIsPausedQuery } = api
 
 export default api;
