@@ -249,8 +249,8 @@ export default function Board() {
     <div
       style={{
         position: "relative",
-        width: "1000px",
-        height: "1000px",
+        width: "800px",
+        height: "800px",
       }}
     >
       {isPaused && (
@@ -271,8 +271,8 @@ export default function Board() {
       )}
       <canvas
         ref={canvasRef}
-        width={1000}
-        height={1000}
+        width={800}
+        height={800}
         style={{
           border: "1px solid lightblue",
         }}
